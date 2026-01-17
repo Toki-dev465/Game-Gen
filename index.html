@@ -1,0 +1,10 @@
+<button onclick="generate()">Generate Game</button>
+<pre id="output"></pre>
+
+<script>
+async function generate() {
+  const res = await fetch('http://localhost:5000/generate');
+  const data = await res.json();
+  document.getElementById('output').textContent = data.game;
+}
+</script>
