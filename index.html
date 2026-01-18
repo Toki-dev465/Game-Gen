@@ -1,10 +1,75 @@
-<button onclick="generate()">Generate Game</button>
-<pre id="output"></pre>
+<h1>FoodGuard 🍎</h1>
+
+<!-- MANUAL ADD -->
+<input type="text" id="foodItem" placeholder="Enter food item">
+<input type="date" id="expiryItem" placeholder="Expiry date (optional)">
+<button onclick="addFood()">Add Food</button>
+
+<!-- SCAN IMAGE -->
+<input type="file" id="foodImage">
+<button onclick="scanFood()">Scan Food</button>
+
+<button onclick="clearFood()">Clear Inventory</button>
+
+<h3>Your Inventory:</h3>
+<ul id="inventory"></ul>
+
+<button onclick="suggestMeals()">Suggest Meals 🍽️</button>
+<pre id="suggestion"></pre>
 
 <script>
-async function generate() {
-  const res = await fetch('http://localhost:5000/generate');
+async function addFood() {
+  const item = document.getElementById("foodItem").value;
+  const expiry = document.getElementById("expiryItem").value || null;
+  if(!item) return;
+
+  const res = await fetch("http://localhost:5000/add", {
+    method:"POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({item, expiry})
+  });
   const data = await res.json();
-  document.getElementById('output').textContent = data.game;
+  updateInventory(data.inventory);
+  document.getElementById("foodItem").value="";
+  document.getElementById("expiryItem").value="";
+}
+
+async function scanFood() {
+  const fileInput = document.getElementById("foodImage");
+  if(fileInput.files.length === 0) return;
+
+  const formData = new FormData();
+  formData.append("image", fileInput.files[0]);
+
+  const res = await fetch("http://localhost:5000/scan", {
+    method:"POST",
+    body: formData
+  });
+  const data = await res.json();
+  if(data.error) alert(data.error);
+  else updateInventory(data.inventory);
+}
+
+async function clearFood() {
+  const res = await fetch("http://localhost:5000/clear", {method:"POST"});
+  const data = await res.json();
+  updateInventory(data.inventory);
+  document.getElementById("suggestion").textContent="";
+}
+
+function updateInventory(list){
+  const ul = document.getElementById("inventory");
+  ul.innerHTML="";
+  list.forEach(i => {
+    const li = document.createElement("li");
+    li.textContent = i.expiry ? `${i.name} (expires: ${i.expiry})` : i.name;
+    ul.appendChild(li);
+  });
+}
+
+async function suggestMeals() {
+  const res = await fetch("http://localhost:5000/suggest");
+  const data = await res.json();
+  document.getElementById("suggestion").textContent = data.suggestion;
 }
 </script>
